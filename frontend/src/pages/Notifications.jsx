@@ -11,7 +11,7 @@ function Notifications() {
   const [filter, setFilter] = useState("ALL");
 
   const notificationUrl =
-    "https://invoicepilot-n1fj.onrender.com/api/automation/notifications/";
+    "https://invoicepilot-ocr.onrender.com/api/automation/notifications/";
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -370,4 +370,5 @@ function Notifications() {
 }
 
 export default Notifications;
+
 

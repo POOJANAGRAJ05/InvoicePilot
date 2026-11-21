@@ -157,7 +157,7 @@ function Invoices() {
         formData.append("invoice_file", file);
 
         const response = await axios.post(
-          "https://invoicepilot-n1fj.onrender.com/api/invoices/",
+          "https://invoicepilot-ocr.onrender.com/api/invoices/",
           formData
         );
 
@@ -845,5 +845,6 @@ function Invoices() {
 }
 
 export default Invoices;
+
 
 

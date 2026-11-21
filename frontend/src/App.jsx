@@ -48,7 +48,7 @@ function AppLayout() {
     const fetchUnreadNotifications = async () => {
       try {
         const response = await axios.get(
-          "https://invoicepilot-n1fj.onrender.com/api/automation/dashboard/"
+          "https://invoicepilot-ocr.onrender.com/api/automation/dashboard/"
         );
 
         if (isMounted && response.data && response.data.summary) {
@@ -159,5 +159,6 @@ function App() {
 }
 
 export default App;
+
 
 

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "https://invoicepilot-n1fj.onrender.com/api/invoices/";
+const API_URL = "https://invoicepilot-ocr.onrender.com/api/invoices/";
 
 function Approvals() {
   const [invoices, setInvoices] = useState([]);
@@ -448,5 +448,6 @@ function Detail({ label, value }) {
 }
 
 export default Approvals;
+
 
 

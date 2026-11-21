@@ -39,15 +39,15 @@ function Automation() {
   const [ruleForm, setRuleForm] = useState(emptyRuleForm);
 
   const dashboardUrl =
-    "https://invoicepilot-n1fj.onrender.com/api/automation/dashboard/";
+    "https://invoicepilot-ocr.onrender.com/api/automation/dashboard/";
   const configUrl =
-    "https://invoicepilot-n1fj.onrender.com/api/automation/config/";
+    "https://invoicepilot-ocr.onrender.com/api/automation/config/";
   const runUrl =
-    "https://invoicepilot-n1fj.onrender.com/api/automation/run/";
+    "https://invoicepilot-ocr.onrender.com/api/automation/run/";
   const activityUrl =
-    "https://invoicepilot-n1fj.onrender.com/api/automation/activity/";
+    "https://invoicepilot-ocr.onrender.com/api/automation/activity/";
   const rulesUrl =
-    "https://invoicepilot-n1fj.onrender.com/api/automation/rules/";
+    "https://invoicepilot-ocr.onrender.com/api/automation/rules/";
 
   // ---------------- LOAD DASHBOARD ----------------
 
@@ -1210,5 +1210,6 @@ function Automation() {
 }
 
 export default Automation;
+
 
 
