@@ -1,10 +1,13 @@
 import axios from "axios";
 
-const INVOICE_API_URL = "http://127.0.0.1:8000/api/invoices/";
-const REPORTS_API_URL = "http://127.0.0.1:8000/api/reports/";
-const VENDORS_API_URL = "http://127.0.0.1:8000/api/vendors/";
-const PURCHASE_ORDERS_API_URL = "http://127.0.0.1:8000/api/purchase-orders/";
-const PO_MATCHES_API_URL = "http://127.0.0.1:8000/api/po-matches/";
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+
+const INVOICE_API_URL = `${API_BASE_URL}/invoices/`;
+const REPORTS_API_URL = `${API_BASE_URL}/reports/`;
+const VENDORS_API_URL = `${API_BASE_URL}/vendors/`;
+const PURCHASE_ORDERS_API_URL = `${API_BASE_URL}/purchase-orders/`;
+const PO_MATCHES_API_URL = `${API_BASE_URL}/po-matches/`;
 
 export async function fetchInvoices() {
     const response = await axios.get(INVOICE_API_URL);
@@ -26,10 +29,9 @@ export function getInvoiceFileUrl(invoice) {
         return invoice.invoice_file;
     }
 
-    return new URL(
-        invoice.invoice_file,
-        "http://127.0.0.1:8000"
-    ).toString();
+    const backendBase = API_BASE_URL.replace(/\/api\/?$/, "");
+
+    return new URL(invoice.invoice_file, backendBase).toString();
 }
 
 export function notifyInvoicesUpdated() {
