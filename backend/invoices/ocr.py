@@ -78,7 +78,7 @@ def extract_text_from_invoice(file: Any) -> str:
         with fitz.open(stream=contents, filetype="pdf") as pdf_document:
             for page in pdf_document:
                 pixmap = page.get_pixmap(
-                    matrix=fitz.Matrix(2, 2),
+                    matrix=fitz.Matrix(1.5, 1.5),
                     alpha=False
                 )
 
@@ -89,7 +89,11 @@ def extract_text_from_invoice(file: Any) -> str:
                 )
 
                 page_text.append(
-                    pytesseract.image_to_string(image, lang="eng")
+                   pytesseract.image_to_string(
+    image,
+    lang="eng",
+    timeout=20
+)
                 )
 
         extracted_text = "\n".join(page_text)
