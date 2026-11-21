@@ -157,7 +157,7 @@ function Invoices() {
         formData.append("invoice_file", file);
 
         const response = await axios.post(
-          "http://127.0.0.1:8000/api/invoices/",
+          "https://invoicepilot-n1fj.onrender.com/api/invoices/",
           formData
         );
 
@@ -845,3 +845,5 @@ function Invoices() {
 }
 
 export default Invoices;
+
+
