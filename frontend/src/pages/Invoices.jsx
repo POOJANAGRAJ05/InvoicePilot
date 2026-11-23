@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { fetchInvoices, notifyInvoicesUpdated } from "../api/invoices";
 import InvoiceDetailsModal from "../components/InvoiceDetailsModal";
@@ -88,6 +87,7 @@ function Invoices() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [page, setPage] = useState(1);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [deletingInvoiceId, setDeletingInvoiceId] = useState(null);
 
   const loadInvoices = useCallback(async () => {
     setLoadingInvoices(true);
@@ -110,6 +110,72 @@ function Invoices() {
       setLoadingInvoices(false);
     }
   }, []);
+
+  // Delete one selected invoice
+  const handleDeleteInvoice = async (invoice) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete invoice ${
+        invoice.invoice_number || invoice.id
+      }? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingInvoiceId(invoice.id);
+    setMessage("");
+
+    try {
+      const API_BASE_URL = (
+        import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api"
+      ).replace(/\/+$/, "");
+
+      const response = await axios.delete(
+        `${API_BASE_URL}/invoices/${invoice.id}/`
+      );
+
+      setInvoices((previous) =>
+        previous.filter((item) => item.id !== invoice.id)
+      );
+
+      setProcessedInvoices((previous) =>
+        previous.filter((item) => item.id !== invoice.id)
+      );
+
+      if (selectedInvoice?.id === invoice.id) {
+        setSelectedInvoice(null);
+      }
+
+      // Keep the page number valid after deletion
+      const remainingCount = filteredInvoices.length - 1;
+      const newPageCount = Math.max(
+        1,
+        Math.ceil(remainingCount / PAGE_SIZE)
+      );
+
+      setPage((currentPage) => Math.min(currentPage, newPageCount));
+
+      setMessage(
+        response.data?.message ||
+          `Invoice ${invoice.invoice_number || invoice.id} deleted successfully.`
+      );
+      setMessageType("success");
+
+      notifyInvoicesUpdated();
+      await loadInvoices();
+    } catch (error) {
+      console.error("Delete invoice error:", error);
+
+      setMessage(
+        error?.response?.data
+          ? `Delete failed: ${JSON.stringify(error.response.data)}`
+          : "Failed to delete invoice. Please check the backend connection."
+      );
+
+      setMessageType("error");
+    } finally {
+      setDeletingInvoiceId(null);
+    }
+  };
 
   useEffect(() => {
     loadInvoices();
@@ -156,10 +222,7 @@ function Invoices() {
         const formData = new FormData();
         formData.append("invoice_file", file);
 
-        const response = await axios.post(
-          "https://invoicepilot-ocr.onrender.com/api/invoices/",
-          formData
-        );
+        const response = await axios.post("http://127.0.0.1:8000/api/invoices/", formData);
 
         uploadResults.push(response.data);
       }
@@ -245,11 +308,20 @@ function Invoices() {
         matchesValidation = invoice.validation_status === "VALID";
       }
 
-      const hasPayment = Array.isArray(invoice.payment_history) && invoice.payment_history.length > 0;
-      const matchesPayment = !paymentFilter ||
-        (paymentFilter === "PAID" && (hasPayment || invoice.status === "PAID")) ||
-        (paymentFilter === "UNPAID_APPROVED" && invoice.status === "APPROVED" && !hasPayment) ||
-        (paymentFilter === "NOT_ELIGIBLE" && invoice.status !== "APPROVED" && !hasPayment);
+      const hasPayment =
+        Array.isArray(invoice.payment_history) &&
+        invoice.payment_history.length > 0;
+
+      const matchesPayment =
+        !paymentFilter ||
+          (paymentFilter === "PAID" &&
+            (hasPayment || invoice.status === "PAID")) ||
+          (paymentFilter === "UNPAID_APPROVED" &&
+            invoice.status === "APPROVED" &&
+            !hasPayment) ||
+          (paymentFilter === "NOT_ELIGIBLE" &&
+            invoice.status !== "APPROVED" &&
+            !hasPayment);
 
       const matchesStart =
         !startDate || (invoiceDate && invoiceDate >= startDate);
@@ -527,7 +599,7 @@ function Invoices() {
 
           <button
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            disabled={loadingInvoices}
+            disabled={loadingInvoices || deletingInvoiceId !== null}
             onClick={loadInvoices}
             type="button"
           >
@@ -754,10 +826,15 @@ function Invoices() {
                         })()}
                       </td>
                       <td className="whitespace-nowrap px-4 py-4">
-                        {Array.isArray(invoice.payment_history) && invoice.payment_history.length > 0 ? (
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">PAID</span>
+                        {Array.isArray(invoice.payment_history) &&
+                        invoice.payment_history.length > 0 ? (
+                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                            PAID
+                          </span>
                         ) : invoice.status === "APPROVED" ? (
-                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">Unpaid</span>
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                            Unpaid
+                          </span>
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}
@@ -767,21 +844,40 @@ function Invoices() {
                           {invoice.status === "APPROVED" &&
                             invoice.validation_status === "VALID" &&
                             !invoice.is_duplicate &&
-                            (!Array.isArray(invoice.payment_history) || invoice.payment_history.length === 0) && (
+                            (!Array.isArray(invoice.payment_history) ||
+                              invoice.payment_history.length === 0) && (
                               <button
                                 className="font-semibold text-emerald-700 hover:text-emerald-900"
-                                onClick={() => setSelectedInvoice({ ...invoice, open_payment_form: true })}
+                                onClick={() =>
+                                  setSelectedInvoice({
+                                    ...invoice,
+                                    open_payment_form: true,
+                                  })
+                                }
                                 type="button"
                               >
                                 Record payment
                               </button>
                             )}
+
                           <button
                             className="font-semibold text-blue-600 hover:text-blue-800"
                             onClick={() => setSelectedInvoice(invoice)}
                             type="button"
                           >
                             View details
+                          </button>
+
+                          {/* Delete Individual Invoice */}
+                          <button
+                            className="font-semibold text-red-600 hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => handleDeleteInvoice(invoice)}
+                            disabled={deletingInvoiceId !== null}
+                            type="button"
+                          >
+                            {deletingInvoiceId === invoice.id
+                              ? "Deleting..."
+                              : "Delete"}
                           </button>
                         </div>
                       </td>
@@ -845,6 +941,3 @@ function Invoices() {
 }
 
 export default Invoices;
-
-
-

@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 
 from rest_framework import viewsets, status
@@ -216,30 +217,35 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     # --------------------------------------------------
     # INVOICE AGING & OVERDUE SUMMARY
     # --------------------------------------------------
+        # --------------------------------------------------
+    # INVOICE AGING & OVERDUE SUMMARY
+    # --------------------------------------------------
     @action(detail=False, methods=["get"], url_path="aging-summary")
     def aging_summary(self, request):
         today = timezone.localdate()
 
-        # Approved, valid, non-duplicate, unpaid invoices
+        # Include approved and exception invoices.
+        # EXCEPTION invoices must not disappear from the aging tracker.
         unpaid = Invoice.objects.filter(
-            status="APPROVED",
+            status__in=["APPROVED", "EXCEPTION"],
             is_duplicate=False,
-            validation_status="VALID",
             payment__isnull=True,
+        ).exclude(
+            due_date__isnull=True
         )
 
-        # Past due invoices
+        # Overdue invoices: due date is before today
         overdue = unpaid.filter(
             due_date__lt=today
         )
 
-        # Invoices due within the next 7 days (including today)
+        # Due soon: today through the next 7 days
         due_soon = unpaid.filter(
             due_date__gte=today,
             due_date__lte=today + timedelta(days=7),
         )
 
-        # Aging buckets based on days overdue
+        # Aging buckets
         aging = {
             "0_30_days": 0,
             "31_60_days": 0,
@@ -247,11 +253,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             "90_plus_days": 0,
         }
 
-        overdue_invoices = overdue.exclude(
-            due_date__isnull=True
-        )
-
-        for invoice in overdue_invoices:
+        for invoice in overdue:
             days_overdue = (today - invoice.due_date).days
             amount = float(invoice.total_amount or 0)
 
@@ -404,4 +406,27 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         return Response(
             response_data,
             status=status.HTTP_201_CREATED,
+        )
+
+    # --------------------------------------------------
+    # DELETE ALL INVOICES
+    # --------------------------------------------------
+    @action(
+        detail=False,
+        methods=["delete"],
+        url_path="delete-all",
+    )
+    def delete_all(self, request):
+        with transaction.atomic():
+            invoices = Invoice.objects.all()
+            invoice_count = invoices.count()
+
+            invoices.delete()
+
+        return Response(
+            {
+                "message": f"{invoice_count} invoices deleted successfully.",
+                "deleted_count": invoice_count,
+            },
+            status=status.HTTP_200_OK,
         )
